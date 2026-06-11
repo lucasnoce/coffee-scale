@@ -12,7 +12,6 @@
 
 
 bool timer_on = false;
-uint8_t timer_int = 0;
 uint32_t timer_sec = 0;
 
 
@@ -23,16 +22,11 @@ void TimerInit(void) {
 
 void TimerIncrement(void) {
 	if (timer_on == true) {
-		timer_int++;
-		if (timer_int >= 10 ) {
-			timer_int = 0;
-			timer_sec+=60;
-		}
+		timer_sec++;
 	}
 }
 
 void TimerStart(void) {
-	timer_int = 0;
 	timer_sec = 0;
 	timer_on  = true;
 }

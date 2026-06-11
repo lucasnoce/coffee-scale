@@ -10,8 +10,6 @@
 
 #include <stdint.h>
 
-typedef uint8_t bool;
-#define true 1
-#define false 0
+typedef enum { false, true } bool;
 
 #endif /* INC_BOOL_H_ */

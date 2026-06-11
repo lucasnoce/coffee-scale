@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include "bool.h"
 #include "display.h"
-#include "load_cell.h"
+#include "hx711.h"
 #include "timer.h"
 #include "ssd1306.h"
 #include "ssd1306_tests.h"
@@ -87,7 +87,7 @@ static void updateDisplayMass(void) {
 	ssd1306_SetCursor(text_col[1], text_row[2]);
 
 	if (show_mass == true) {
-		float mass = LoadCellGetLastReading();
+		float mass = HX711GetReadingAverage();
 
 		if (mass < 1000.0 && mass > -100.0) {
 			snprintf(text, sizeof(text), "%.1f", mass);
@@ -116,7 +116,7 @@ static void updateDisplayFlow(void) {
 	ssd1306_SetCursor(text_col[1], text_row[1]);
 
 	if (show_flow == true) {
-		float flow = LoadCellGetReadingRate();
+		float flow = HX711GetReadingRate();
 
 		if (flow < 1000.0 && flow > -100.0) {
 			snprintf(text, sizeof(text), "%.1f", flow);
