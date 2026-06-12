@@ -21,9 +21,7 @@ typedef struct {
 	ButtonCb_t cb_click;
 	ButtonCb_t cb_hold_start;
 	ButtonCb_t cb_hold_stop;
-	GPIO_TypeDef *gpio;
-	uint16_t pin;
-} ButtonInfo_t;
+} ButtonCallback_t;
 
 typedef enum {
 	BUTTON_PIN_OK = 0,
@@ -33,17 +31,14 @@ typedef enum {
 	COUNT_BUTTON_PINS
 } Button_Pin;
 
-typedef struct {
-    Button_Pin pin;
-    GPIO_PinState state;
-} ButtonEventData_t;
-
-typedef ButtonInfo_t ButtonArray_t[COUNT_BUTTON_PINS];
+typedef ButtonCallback_t ButtonArray_t[COUNT_BUTTON_PINS];
 
 void ButtonInit(ButtonArray_t *btn_arr);
-void ButtonAction(ButtonEventData_t *btn_event_data);
-void ButtonPress(Button_Pin btn_pin);
-void ButtonRelease(Button_Pin btn_pin);
+void ButtonSetState(Button_Pin btn_pin, GPIO_PinState state);
+void ButtonRegisterCbClick(Button_Pin btn_pin, ButtonCb_t btn_cb_click);
+void ButtonRegisterCbHoldStart(Button_Pin btn_pin, ButtonCb_t btn_cb_hold_start);
+void ButtonRegisterCbHoldStop(Button_Pin btn_pin, ButtonCb_t btn_cb_hold_stop);
+void ButtonAction(Button_Pin btn_pin);
 void ButtonHoldTimerExpire(Button_Pin btn_pin);
 
 #endif /* INC_BUTTONS_H_ */

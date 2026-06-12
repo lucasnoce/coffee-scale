@@ -52,7 +52,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim5;
 
 /* USER CODE BEGIN PV */
-ButtonEventData_t btn_event_data[COUNT_BUTTON_PINS];  // TODO: maybe place this somewhere else
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,7 +67,7 @@ static void MX_TIM5_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void buttonCbTest(void) { return; }
 /* USER CODE END 0 */
 
 /**
@@ -103,11 +103,16 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  EventInit();
   UtilsInit();
+  EventInit();
+
   DisplayInit();
   HX711Init(HX711_SCK_GPIO_Port, HX711_SCK_Pin, HX711_DOUT_GPIO_Port, HX711_DOUT_Pin);
   TimerInit();
+
+  ButtonArray_t btn_arr;
+  btn_arr[BUTTON_PIN_OK].cb_click = buttonCbTest;
+  ButtonInit(&btn_arr);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -392,12 +397,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
     if(htim->Instance == TIM2) {
-    	EventQueue(EVENT_ID_BUTTON_HOLD, (Button_Pin) (htim->Channel >> 1));
+    	EventQueue(EVENT_ID_BUTTON_HOLD, (uintptr_t)(Button_Pin) (htim->Channel >> 1));
     }
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	GPIO_PinState state = HAL_GPIO_ReadPin(GPIOA, GPIO_Pin);
+	GPIO_PinState state = HAL_GPIO_ReadPin(GPIOA, GPIO_Pin);  // assumes all EXTI GPIOs are in Port A
 
 	switch (GPIO_Pin) {
 		#ifdef HX711_LOOP_BACK_TEST
@@ -411,27 +416,23 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			break;
 
 		case BTN_OK_Pin:
-			btn_event_data[BUTTON_PIN_OK].pin = BUTTON_PIN_OK;
-			btn_event_data[BUTTON_PIN_OK].state = state;
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			ButtonSetState(BUTTON_PIN_OK, state);
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_OK);
 			break;
 
 		case BTN_R_Pin:
-			btn_event_data[BUTTON_PIN_R].pin = BUTTON_PIN_R;
-			btn_event_data[BUTTON_PIN_R].state = state;
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			ButtonSetState(BUTTON_PIN_R, state);
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_R);
 			break;
 
 		case BTN_L_Pin:
-			btn_event_data[BUTTON_PIN_L].pin = BUTTON_PIN_L;
-			btn_event_data[BUTTON_PIN_L].state = state;
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			ButtonSetState(BUTTON_PIN_L, state);
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_L);
 			break;
 
 		case BTN_BACK_Pin:
-			btn_event_data[BUTTON_PIN_BACK].pin = BUTTON_PIN_BACK;
-			btn_event_data[BUTTON_PIN_BACK].state = state;
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			ButtonSetState(BUTTON_PIN_BACK, state);
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_BACK);
 			break;
 
 		default:

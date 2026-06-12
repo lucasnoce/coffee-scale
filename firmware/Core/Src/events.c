@@ -59,7 +59,7 @@ void EventLoop(void) {
                 break;
 
             case EVENT_ID_BUTTON_ACTION:
-            	ButtonAction((ButtonEventData_t *) data);
+            	ButtonAction((Button_Pin) data);
                 break;
 
             case EVENT_ID_BUTTON_HOLD:

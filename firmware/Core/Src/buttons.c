@@ -12,7 +12,8 @@
 
 
 
-static ButtonArray_t *p_btn_arr;
+static ButtonArray_t btn_arr;
+static GPIO_PinState btn_state[COUNT_BUTTON_PINS];
 static bool is_holding = false;
 
 static uint32_t tim_channel[COUNT_BUTTON_PINS] = {
@@ -28,38 +29,53 @@ extern TIM_HandleTypeDef htim2;
 
 static void startDetectionHold(Button_Pin btn_pin);
 static void stopDetectionHold(Button_Pin btn_pin);
+static void buttonPress(Button_Pin btn_pin);
+static void buttonRelease(Button_Pin btn_pin);
 
 
 
-void ButtonInit(ButtonArray_t *btn_arr) {
-	if (btn_arr == NULL)
+void ButtonInit(ButtonArray_t *p_btn_arr) {
+	if (p_btn_arr == NULL)
 		return;
-	p_btn_arr = btn_arr;
+
+	for (uint8_t i=0; i<COUNT_BUTTON_PINS; i++) {
+		ButtonRegisterCbClick(i, p_btn_arr[i]->cb_click);
+		ButtonRegisterCbHoldStart(i, p_btn_arr[i]->cb_hold_start);
+		ButtonRegisterCbHoldStop(i, p_btn_arr[i]->cb_hold_stop);
+	}
 }
 
-void ButtonAction(ButtonEventData_t *btn_event_data) {
-	if (btn_event_data->state == GPIO_PIN_SET)
-		ButtonPress(btn_event_data->pin);
+void ButtonSetState(Button_Pin btn_pin, GPIO_PinState state) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+	btn_state[btn_pin] = state;
+}
+
+void ButtonRegisterCbClick(Button_Pin btn_pin, ButtonCb_t btn_cb_click) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+	btn_arr[btn_pin].cb_click = btn_cb_click;
+}
+void ButtonRegisterCbHoldStart(Button_Pin btn_pin, ButtonCb_t btn_cb_hold_start) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+	btn_arr[btn_pin].cb_hold_start = btn_cb_hold_start;
+}
+void ButtonRegisterCbHoldStop(Button_Pin btn_pin, ButtonCb_t btn_cb_hold_stop) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+	btn_arr[btn_pin].cb_hold_stop = btn_cb_hold_stop;
+}
+
+void ButtonAction(Button_Pin btn_pin) {
+	if (btn_state[btn_pin] == GPIO_PIN_SET)
+		buttonPress(btn_pin);
 	else
-		ButtonRelease(btn_event_data->pin);
-}
-
-void ButtonPress(Button_Pin btn_pin) {
-	if (btn_pin >= COUNT_BUTTON_PINS || p_btn_arr[btn_pin]->cb_click == NULL)
-		return;
-	p_btn_arr[btn_pin]->cb_click();
-	startDetectionHold(btn_pin);
-}
-
-void ButtonRelease(Button_Pin btn_pin) {
-	if (btn_pin >= COUNT_BUTTON_PINS || p_btn_arr[btn_pin]->cb_hold_stop == NULL)
-		return;
-	p_btn_arr[btn_pin]->cb_hold_stop();
-	stopDetectionHold(btn_pin);
+		buttonRelease(btn_pin);
 }
 
 void ButtonHoldTimerExpire(Button_Pin btn_pin) {
-	if (is_holding == true || p_btn_arr[btn_pin]->cb_hold_start == NULL)
+	if (is_holding == true)
 		return;
 
 	is_holding = true;
@@ -69,7 +85,8 @@ void ButtonHoldTimerExpire(Button_Pin btn_pin) {
 			stopDetectionHold(btn_pin);
 	}
 
-	p_btn_arr[btn_pin]->cb_hold_start();  // blocking function
+	if (btn_arr[btn_pin].cb_hold_start != NULL)
+		btn_arr[btn_pin].cb_hold_start();  // blocking function
 
 	stopDetectionHold(btn_pin);
 
@@ -86,4 +103,25 @@ static void startDetectionHold(Button_Pin btn_pin) {
 
 static void stopDetectionHold(Button_Pin btn_pin) {
 	HAL_TIM_OC_Stop_IT(&htim2, tim_channel[btn_pin]);
+}
+
+
+static void buttonPress(Button_Pin btn_pin) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+
+	if (btn_arr[btn_pin].cb_click != NULL)
+		btn_arr[btn_pin].cb_click();
+
+	startDetectionHold(btn_pin);
+}
+
+static void buttonRelease(Button_Pin btn_pin) {
+	if (btn_pin >= COUNT_BUTTON_PINS)
+		return;
+
+	if (btn_arr[btn_pin].cb_hold_stop != NULL)
+		btn_arr[btn_pin].cb_hold_stop();
+
+	stopDetectionHold(btn_pin);
 }
