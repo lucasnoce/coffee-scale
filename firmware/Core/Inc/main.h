@@ -57,8 +57,23 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define HX711_LoopBack_Pin GPIO_PIN_9
-#define HX711_LoopBack_GPIO_Port GPIOA
+#define BTN_BACK_Pin GPIO_PIN_3
+#define BTN_BACK_GPIO_Port GPIOA
+#define BTN_BACK_EXTI_IRQn EXTI3_IRQn
+#define BTN_L_Pin GPIO_PIN_4
+#define BTN_L_GPIO_Port GPIOA
+#define BTN_L_EXTI_IRQn EXTI4_IRQn
+#define BTN_R_Pin GPIO_PIN_5
+#define BTN_R_GPIO_Port GPIOA
+#define BTN_R_EXTI_IRQn EXTI9_5_IRQn
+#define BTN_OK_Pin GPIO_PIN_6
+#define BTN_OK_GPIO_Port GPIOA
+#define BTN_OK_EXTI_IRQn EXTI9_5_IRQn
+#define HX711_DOUT_LoopBack_Pin GPIO_PIN_8
+#define HX711_DOUT_LoopBack_GPIO_Port GPIOA
+#define HX711_SCK_LoopBack_Pin GPIO_PIN_9
+#define HX711_SCK_LoopBack_GPIO_Port GPIOA
+#define HX711_SCK_LoopBack_EXTI_IRQn EXTI9_5_IRQn
 #define HX711_SCK_Pin GPIO_PIN_10
 #define HX711_SCK_GPIO_Port GPIOA
 #define HX711_DOUT_Pin GPIO_PIN_11

@@ -21,10 +21,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bool.h"
+#include "events.h"
 #include "utils.h"
 #include "display.h"
 #include "hx711.h"
 #include "timer.h"
+#include "buttons.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +52,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim5;
 
 /* USER CODE BEGIN PV */
-
+ButtonEventData_t btn_event_data[COUNT_BUTTON_PINS];  // TODO: maybe place this somewhere else
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,13 +103,11 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
+  EventInit();
   UtilsInit();
   DisplayInit();
   HX711Init(HX711_SCK_GPIO_Port, HX711_SCK_Pin, HX711_DOUT_GPIO_Port, HX711_DOUT_Pin);
   TimerInit();
-
-  HX711SetSlope(1);
-  HX711Tare();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -116,8 +117,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HX711Loop();
-	  HAL_Delay(50);
+	  EventLoop();
   }
   /* USER CODE END 3 */
 }
@@ -215,6 +215,7 @@ static void MX_TIM2_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
@@ -234,9 +235,33 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -308,14 +333,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, HX711_LoopBack_Pin|HX711_SCK_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, HX711_DOUT_LoopBack_Pin|HX711_SCK_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : HX711_LoopBack_Pin HX711_SCK_Pin */
-  GPIO_InitStruct.Pin = HX711_LoopBack_Pin|HX711_SCK_Pin;
+  /*Configure GPIO pins : BTN_BACK_Pin BTN_L_Pin BTN_R_Pin BTN_OK_Pin */
+  GPIO_InitStruct.Pin = BTN_BACK_Pin|BTN_L_Pin|BTN_R_Pin|BTN_OK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : HX711_DOUT_LoopBack_Pin HX711_SCK_Pin */
+  GPIO_InitStruct.Pin = HX711_DOUT_LoopBack_Pin|HX711_SCK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : HX711_SCK_LoopBack_Pin */
+  GPIO_InitStruct.Pin = HX711_SCK_LoopBack_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(HX711_SCK_LoopBack_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : HX711_DOUT_Pin */
   GPIO_InitStruct.Pin = HX711_DOUT_Pin;
@@ -324,6 +361,15 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(HX711_DOUT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
@@ -334,17 +380,62 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 	if (htim->Instance == TIM2) {  // (T = 100ms) display refresh rate @10Hz
-		DisplayUpdate();
+		EventQueue(EVENT_ID_DISPLAY_UPDATE, 0);
 	}
 	else if(htim->Instance == TIM5) {  // (T = 1s) timer
 		TimerIncrement();
-		HX711LoopBackTest();
+	#ifdef HX711_LOOP_BACK_TEST
+		HX711LoopBackTestStart();
+	#endif
 	}
 }
 
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
+    if(htim->Instance == TIM2) {
+    	EventQueue(EVENT_ID_BUTTON_HOLD, (Button_Pin) (htim->Channel >> 1));
+    }
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == HX711_DOUT_Pin) {
-		HX711SetSampleReady();
+	GPIO_PinState state = HAL_GPIO_ReadPin(GPIOA, GPIO_Pin);
+
+	switch (GPIO_Pin) {
+		#ifdef HX711_LOOP_BACK_TEST
+		case HX711_SCK_LoopBack_Pin:
+			HX711LoopBackTestSendData();
+			break;
+		#endif
+
+		case HX711_DOUT_Pin:
+			EventQueue(EVENT_ID_HX711_SAMPLE_READY, 0);
+			break;
+
+		case BTN_OK_Pin:
+			btn_event_data[BUTTON_PIN_OK].pin = BUTTON_PIN_OK;
+			btn_event_data[BUTTON_PIN_OK].state = state;
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			break;
+
+		case BTN_R_Pin:
+			btn_event_data[BUTTON_PIN_R].pin = BUTTON_PIN_R;
+			btn_event_data[BUTTON_PIN_R].state = state;
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			break;
+
+		case BTN_L_Pin:
+			btn_event_data[BUTTON_PIN_L].pin = BUTTON_PIN_L;
+			btn_event_data[BUTTON_PIN_L].state = state;
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			break;
+
+		case BTN_BACK_Pin:
+			btn_event_data[BUTTON_PIN_BACK].pin = BUTTON_PIN_BACK;
+			btn_event_data[BUTTON_PIN_BACK].state = state;
+			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) &btn_event_data);
+			break;
+
+		default:
+			break;
 	}
 }
 /* USER CODE END 4 */

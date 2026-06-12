@@ -10,6 +10,9 @@
 
 #include <stdint.h>
 
-typedef enum { false, true } bool;
+typedef enum {
+	false = 0,
+	true
+} bool;
 
 #endif /* INC_BOOL_H_ */
