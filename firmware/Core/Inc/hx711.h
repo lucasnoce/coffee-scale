@@ -10,12 +10,7 @@
 
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
-#include "bool.h"
-#include "main.h"
-
-#if defined(HX711_SCK_LoopBack_Pin) && defined(HX711_DOUT_LoopBack_Pin)
-#define HX711_LOOP_BACK_TEST
-#endif
+#include "hx711_test.h"
 
 
 
@@ -33,10 +28,6 @@ void HX711Tare(void);
 float HX711GetReadingAverage(void);
 float HX711GetReadingRate(void);
 
-#ifdef HX711_LOOP_BACK_TEST
-void HX711LoopBackTestStart(void);
-void HX711LoopBackTestSendData(void);
-#endif
 
 
 #endif /* INC_HX711_H_ */

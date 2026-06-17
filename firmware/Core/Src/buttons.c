@@ -9,6 +9,7 @@
 #include "stm32f4xx_hal.h"
 #include "buttons.h"
 #include "bool.h"
+#include "utils.h"
 
 
 
@@ -38,11 +39,13 @@ void ButtonInit(ButtonArray_t *p_btn_arr) {
 	if (p_btn_arr == NULL)
 		return;
 
+	UtilsStopInterruptsAll();
 	for (uint8_t i=0; i<COUNT_BUTTON_PINS; i++) {
 		ButtonRegisterCbClick(i, p_btn_arr[i]->cb_click);
 		ButtonRegisterCbHoldStart(i, p_btn_arr[i]->cb_hold_start);
 		ButtonRegisterCbHoldStop(i, p_btn_arr[i]->cb_hold_stop);
 	}
+	UtilsResumeInterruptsAll();
 }
 
 void ButtonSetState(Button_Pin btn_pin, GPIO_PinState state) {
@@ -104,7 +107,6 @@ static void startDetectionHold(Button_Pin btn_pin) {
 static void stopDetectionHold(Button_Pin btn_pin) {
 	HAL_TIM_OC_Stop_IT(&htim2, tim_channel[btn_pin]);
 }
-
 
 static void buttonPress(Button_Pin btn_pin) {
 	if (btn_pin >= COUNT_BUTTON_PINS)

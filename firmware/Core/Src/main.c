@@ -110,9 +110,10 @@ int main(void)
   HX711Init(HX711_SCK_GPIO_Port, HX711_SCK_Pin, HX711_DOUT_GPIO_Port, HX711_DOUT_Pin);
   TimerInit();
 
-  ButtonArray_t btn_arr;
-  btn_arr[BUTTON_PIN_OK].cb_click = buttonCbTest;
-  ButtonInit(&btn_arr);
+//  ButtonArray_t btn_arr = {0};
+//  btn_arr[BUTTON_PIN_OK].cb_click = buttonCbTest;
+//  btn_arr[BUTTON_PIN_R].cb_hold_start = buttonCbTest;
+//  ButtonInit(&btn_arr);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -415,25 +416,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			EventQueue(EVENT_ID_HX711_SAMPLE_READY, 0);
 			break;
 
-		case BTN_OK_Pin:
-			ButtonSetState(BUTTON_PIN_OK, state);
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_OK);
-			break;
-
-		case BTN_R_Pin:
-			ButtonSetState(BUTTON_PIN_R, state);
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_R);
-			break;
-
-		case BTN_L_Pin:
-			ButtonSetState(BUTTON_PIN_L, state);
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_L);
-			break;
-
-		case BTN_BACK_Pin:
-			ButtonSetState(BUTTON_PIN_BACK, state);
-			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_BACK);
-			break;
+//		case BTN_OK_Pin:
+//			ButtonSetState(BUTTON_PIN_OK, state);
+//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_OK);
+//			break;
+//
+//		case BTN_R_Pin:
+//			ButtonSetState(BUTTON_PIN_R, state);
+//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_R);
+//			break;
+//
+//		case BTN_L_Pin:
+//			ButtonSetState(BUTTON_PIN_L, state);
+//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_L);
+//			break;
+//
+//		case BTN_BACK_Pin:
+//			ButtonSetState(BUTTON_PIN_BACK, state);
+//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_BACK);
+//			break;
 
 		default:
 			break;

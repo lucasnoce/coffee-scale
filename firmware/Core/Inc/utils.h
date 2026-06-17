@@ -10,14 +10,14 @@
 
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
-#include "hx711.h"
+#include "hx711_test.h"
 
 #ifdef HX711_LOOP_BACK_TEST
-void stopInterrupts(void);
-void resumeInterrupts(void);
+void UtilsStopInterruptsAll(void);
+void UtilsResumeInterruptsAll(void);
 #else
-#define stopInterrupts() __disable_irq()
-#define resumeInterrupts() __enable_irq()
+#define UtilsStopInterruptsAll() __disable_irq()
+#define UtilsResumeInterruptsAll() __enable_irq()
 #endif
 
 void UtilsInit(void);
