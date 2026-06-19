@@ -60,6 +60,10 @@ void DisplayUpdate(void) {
 	ssd1306_UpdateScreen();
 }
 
+void DisplayInitFail(void) {
+	resetDisplay();
+}
+
 
 
 static void resetDisplay(void) {  // ~ 2.5ms

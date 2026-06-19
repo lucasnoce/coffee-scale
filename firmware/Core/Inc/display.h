@@ -10,5 +10,6 @@
 
 void DisplayInit(void);
 void DisplayUpdate(void);
+void DisplayInitFail(void);
 
 #endif /* INC_DISPLAY_H_ */

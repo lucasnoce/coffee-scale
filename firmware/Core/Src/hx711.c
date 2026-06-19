@@ -52,35 +52,31 @@ static uint8_t buf_flt_pos = BUF_FLT_SIZE - 1;
 static uint8_t buf_raw_pos = BUF_RAW_SIZE - 1;
 
 /* Linear Regression constant values (possible thanks to fixed sampling rate) */
-const static float lr_N = (float) BUF_FLT_SIZE;
-const static float lr_t[BUF_FLT_SIZE] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-const static float lr_sum_t  = 4.5;
-const static float lr_sum_t2 = 2.85;
-const static float lr_den = (lr_N * lr_sum_t2) - (lr_sum_t * lr_sum_t);
+#define LR_N      ((float) BUF_FLT_SIZE)
+#define LR_SUM_T  ((float) 4.5)
+#define LR_SUM_T2 ((float) 2.85)
+#define LR_DEN    ((LR_N * LR_SUM_T2) - (LR_SUM_T * LR_SUM_T))
+const static float LR_T[BUF_FLT_SIZE] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
-
-extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim4;
-extern TIM_HandleTypeDef htim5;
-
+static bool firstTare(void);
 static int32_t calculateMedian3(void);
 static float calculateAvrgForced(void);
-static float calculateAvrgFast(float last);
+//static float calculateAvrgFast(float last);
 static float calculateRate(void);
 static void readSample(void);
 static void readSamplePoll(void);
 
 
 
-void HX711Init(GPIO_TypeDef *sck_gpio, uint16_t sck_pin, GPIO_TypeDef *dout_gpio, uint16_t dout_pin) {
-	if (hx711_init == true || sck_gpio == NULL || dout_gpio == NULL) {
-		return;
+bool HX711Init(HX711Config_t *cfg) {
+	if (hx711_init == true || cfg == NULL) {
+		return false;
 	}
 
-	hx711.sck_gpio  = sck_gpio;
-	hx711.sck_pin   = sck_pin;
-	hx711.dout_gpio = dout_gpio;
-	hx711.dout_pin  = dout_pin;
+	hx711.sck_gpio  = cfg->sck_gpio;
+	hx711.sck_pin   = cfg->sck_pin;
+	hx711.dout_gpio = cfg->dout_gpio;
+	hx711.dout_pin  = cfg->dout_pin;
 	hx711.slope     = 0.0001192093038 / 1.1;
 	hx711.offset    = 0.0;
 
@@ -94,6 +90,7 @@ void HX711Init(GPIO_TypeDef *sck_gpio, uint16_t sck_pin, GPIO_TypeDef *dout_gpio
 	HAL_Delay(10);
 #endif
 
+	// Fill the buffer
 	for (uint8_t i = 0; i < (BUF_FLT_SIZE + 1); i++) { // need +1 because of median overhead
 		#ifdef HX711_LOOP_BACK_TEST_EN
 		HX711LoopBackTestStart();
@@ -101,11 +98,8 @@ void HX711Init(GPIO_TypeDef *sck_gpio, uint16_t sck_pin, GPIO_TypeDef *dout_gpio
 		readSamplePoll();
 	}
 
-	reading_avrg = calculateAvrgForced();
-	reading_rate = calculateRate();
-	HX711Tare();
-
-	hx711_init = true;
+	hx711_init = firstTare();
+	return hx711_init;
 }
 
 float HX711GetSlope(void) {
@@ -150,6 +144,28 @@ void HX711Loop(void) {
 	readSample();
 }
 
+
+static bool firstTare(void) {
+	uint32_t maxDelay = 1000;
+	uint32_t startTime = HAL_GetTick();
+
+	reading_avrg = calculateAvrgForced();
+	reading_rate = calculateRate();
+
+	while (reading_rate != 0.0) {
+		HAL_Delay(100);
+		#ifdef HX711_LOOP_BACK_TEST_EN
+		HX711LoopBackTestStart();
+		#endif
+		readSamplePoll();
+		if (HAL_GetTick() - startTime > maxDelay)
+			return false;
+	}
+
+	HX711Tare();
+	return true;
+}
+
 static int32_t calculateMedian3(void) {
 	if (buf_raw[0] > buf_raw[1]) {
 		int32_t t = buf_raw[0];
@@ -186,15 +202,17 @@ static float calculateAvrgForced(void) {
 //}
 
 static float calculateRate(void) {
-    float _lr_sum_w = (float) BUF_FLT_SIZE * reading_avrg;
-    float _lr_sum_tw = 0.0;
+	float _lr_sum_w = (float) BUF_FLT_SIZE * reading_avrg;
+	float _lr_sum_tw = 0.0;
 
-    for (uint8_t i = 0; i < BUF_FLT_SIZE; i++) {
-        uint8_t pos = (buf_flt_pos + i) % BUF_FLT_SIZE;
-        _lr_sum_tw += (lr_t[i] * buf_flt[pos]);
-    }
+	for (uint8_t i = 0; i < BUF_FLT_SIZE; i++) {
+	    uint8_t pos = (buf_flt_pos + i) % BUF_FLT_SIZE;
+	    _lr_sum_tw += (LR_T[i] * buf_flt[pos]);
+	}
 
-    return (lr_N * _lr_sum_tw - lr_sum_t * _lr_sum_w) / lr_den;
+	float rate = (LR_N * _lr_sum_tw - LR_SUM_T * _lr_sum_w) / LR_DEN;
+	if (rate < 0.1 && rate > -0.1) rate = 0.0;
+	return rate;
 }
 
 static void readSample(void) {

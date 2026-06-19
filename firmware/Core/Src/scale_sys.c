@@ -25,30 +25,36 @@ extern TIM_HandleTypeDef htim4;  // used for loop back test
 
 
 
-void ScaleSysInit(void){
-	HAL_TIM_Base_Stop_IT(&htim2);
-	HAL_TIM_Base_Stop_IT(&htim5);
-	HAL_TIM_Base_Stop_IT(&htim4);
+static void initTimStop(void);
+static void initTimStart(void);
 
-	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_2);
-	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_3);
-	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_4);
+
+
+void ScaleSysInit(void){
+	HX711Config_t hx711_cfg;
+	hx711_cfg.sck_gpio  = HX711_SCK_GPIO_Port;
+	hx711_cfg.sck_pin   = HX711_SCK_Pin;
+	hx711_cfg.dout_gpio = HX711_DOUT_GPIO_Port;
+	hx711_cfg.dout_pin  = HX711_DOUT_Pin;
+
+	initTimStop();
 
 	UtilsInit();
 	EventInit();
 	DisplayInit();
-	HX711Init(HX711_SCK_GPIO_Port, HX711_SCK_Pin, HX711_DOUT_GPIO_Port, HX711_DOUT_Pin);
 	TimerInit(&htim5);
+
+	if (!HX711Init(&hx711_cfg)) {
+		DisplayInitFail();
+		while (true) HAL_Delay(10);
+	}
 
 //	ButtonArray_t btn_arr = {0};
 //	btn_arr[BUTTON_PIN_OK].cb_click = buttonCbTest;
 //	btn_arr[BUTTON_PIN_R].cb_hold_start = buttonCbTest;
 //	ButtonInit(&btn_arr);
 
-	HAL_TIM_Base_Start_IT(&htim2);
-	HAL_TIM_Base_Start_IT(&htim5);
-	HAL_TIM_Base_Start_IT(&htim4);
+	initTimStart();
 }
 
 void ScaleSysLoop(void){
@@ -116,4 +122,23 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		default:
 			break;
 	}
+}
+
+
+
+static void initTimStop(void) {
+	HAL_TIM_Base_Stop_IT(&htim2);
+	HAL_TIM_Base_Stop_IT(&htim4);
+	HAL_TIM_Base_Stop_IT(&htim5);
+
+	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_2);
+	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_3);
+	HAL_TIM_OC_Stop_IT(&htim2, TIM_CHANNEL_4);
+}
+
+static void initTimStart(void) {
+	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start_IT(&htim4);
+	HAL_TIM_Base_Start_IT(&htim5);
 }

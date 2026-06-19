@@ -11,10 +11,20 @@
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
 #include "hx711_test.h"
+#include "bool.h"
 
 
 
-void HX711Init(GPIO_TypeDef *sck_gpio, uint16_t sck_pin, GPIO_TypeDef *dout_gpio, uint16_t dout_pin);
+typedef struct {
+	GPIO_TypeDef *sck_gpio;
+	GPIO_TypeDef *dout_gpio;
+	uint16_t     sck_pin;
+	uint16_t     dout_pin;
+} HX711Config_t;
+
+
+
+bool HX711Init(HX711Config_t *cfg);
 void HX711Loop(void);
 
 float HX711GetSlope(void);
