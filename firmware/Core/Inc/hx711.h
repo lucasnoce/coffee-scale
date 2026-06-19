@@ -22,7 +22,6 @@ float HX711GetOffset(void);
 
 void HX711SetSlope(float slope);
 void HX711SetOffset(float offset);
-void HX711SetSampleReady(void);
 
 void HX711Tare(void);
 float HX711GetReadingAverage(void);

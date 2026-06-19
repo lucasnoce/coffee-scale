@@ -33,7 +33,7 @@ typedef enum {
 
 typedef ButtonCallback_t ButtonArray_t[COUNT_BUTTON_PINS];
 
-void ButtonInit(ButtonArray_t *btn_arr);
+void ButtonInit(ButtonArray_t *btn_arr, TIM_HandleTypeDef *htim);
 void ButtonSetState(Button_Pin btn_pin, GPIO_PinState state);
 void ButtonRegisterCbClick(Button_Pin btn_pin, ButtonCb_t btn_cb_click);
 void ButtonRegisterCbHoldStart(Button_Pin btn_pin, ButtonCb_t btn_cb_hold_start);

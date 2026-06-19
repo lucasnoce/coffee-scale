@@ -31,7 +31,7 @@ void DelayUs(uint32_t delay_us) {
 
 
 
-#ifdef HX711_LOOP_BACK_TEST
+#ifdef HX711_LOOP_BACK_TEST_EN
 
 static void stopInterruptsTimers(void) {
 //	EXTI->IMR &= ~EXTI_IMR_IM11;

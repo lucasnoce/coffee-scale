@@ -21,13 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bool.h"
-#include "events.h"
-#include "utils.h"
-#include "display.h"
-#include "hx711.h"
-#include "timer.h"
-#include "buttons.h"
+#include "scale_sys.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +43,7 @@
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 
 /* USER CODE BEGIN PV */
@@ -61,6 +56,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -102,18 +98,9 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM2_Init();
   MX_TIM5_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  UtilsInit();
-  EventInit();
-
-  DisplayInit();
-  HX711Init(HX711_SCK_GPIO_Port, HX711_SCK_Pin, HX711_DOUT_GPIO_Port, HX711_DOUT_Pin);
-  TimerInit();
-
-//  ButtonArray_t btn_arr = {0};
-//  btn_arr[BUTTON_PIN_OK].cb_click = buttonCbTest;
-//  btn_arr[BUTTON_PIN_R].cb_hold_start = buttonCbTest;
-//  ButtonInit(&btn_arr);
+  ScaleSysInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,7 +110,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  EventLoop();
+	  ScaleSysLoop();
   }
   /* USER CODE END 3 */
 }
@@ -227,9 +214,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 999;
+  htim2.Init.Prescaler = 399;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 9999;
+  htim2.Init.Period = 49999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -272,8 +259,51 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
-  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 1599;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 62499;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+  /* USER CODE END TIM4_Init 2 */
 
 }
 
@@ -317,7 +347,6 @@ static void MX_TIM5_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM5_Init 2 */
-  HAL_TIM_Base_Start_IT(&htim5);
   /* USER CODE END TIM5_Init 2 */
 
 }
@@ -384,62 +413,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
-	if (htim->Instance == TIM2) {  // (T = 100ms) display refresh rate @10Hz
-		EventQueue(EVENT_ID_DISPLAY_UPDATE, 0);
-	}
-	else if(htim->Instance == TIM5) {  // (T = 1s) timer
-		TimerIncrement();
-	#ifdef HX711_LOOP_BACK_TEST
-		HX711LoopBackTestStart();
-	#endif
-	}
-}
 
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
-    if(htim->Instance == TIM2) {
-    	EventQueue(EVENT_ID_BUTTON_HOLD, (uintptr_t)(Button_Pin) (htim->Channel >> 1));
-    }
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	GPIO_PinState state = HAL_GPIO_ReadPin(GPIOA, GPIO_Pin);  // assumes all EXTI GPIOs are in Port A
-
-	switch (GPIO_Pin) {
-		#ifdef HX711_LOOP_BACK_TEST
-		case HX711_SCK_LoopBack_Pin:
-			HX711LoopBackTestSendData();
-			break;
-		#endif
-
-		case HX711_DOUT_Pin:
-			EventQueue(EVENT_ID_HX711_SAMPLE_READY, 0);
-			break;
-
-//		case BTN_OK_Pin:
-//			ButtonSetState(BUTTON_PIN_OK, state);
-//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_OK);
-//			break;
-//
-//		case BTN_R_Pin:
-//			ButtonSetState(BUTTON_PIN_R, state);
-//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_R);
-//			break;
-//
-//		case BTN_L_Pin:
-//			ButtonSetState(BUTTON_PIN_L, state);
-//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_L);
-//			break;
-//
-//		case BTN_BACK_Pin:
-//			ButtonSetState(BUTTON_PIN_BACK, state);
-//			EventQueue(EVENT_ID_BUTTON_ACTION, (uintptr_t) BUTTON_PIN_BACK);
-//			break;
-
-		default:
-			break;
-	}
-}
 /* USER CODE END 4 */
 
 /**

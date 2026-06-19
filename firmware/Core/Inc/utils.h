@@ -12,7 +12,13 @@
 #include "stm32f4xx_hal.h"
 #include "hx711_test.h"
 
-#ifdef HX711_LOOP_BACK_TEST
+
+
+
+
+
+
+#ifdef HX711_LOOP_BACK_TEST_EN
 void UtilsStopInterruptsAll(void);
 void UtilsResumeInterruptsAll(void);
 #else

@@ -62,7 +62,7 @@ void DisplayUpdate(void) {
 
 
 
-static void resetDisplay(void) {
+static void resetDisplay(void) {  // ~ 2.5ms
 	ssd1306_Fill(Black);
 	ssd1306_Line((text_col[1] - text_x_padding), 1, (text_col[1] - text_x_padding), (SSD1306_HEIGHT - 1), White);  // vertical
 //	ssd1306_Line(1, (text_row[1] - text_row_title_h - text_y_padding), (SSD1306_WIDTH - 1), (text_row[1] - text_row_title_h - text_y_padding), White);  // horizontal 1

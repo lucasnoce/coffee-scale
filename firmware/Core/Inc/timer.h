@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-void TimerInit(void);
+void TimerInit(TIM_HandleTypeDef *htim);
 void TimerIncrement(void);
 void TimerStart(void);
 void TimerPause(void);

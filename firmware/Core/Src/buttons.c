@@ -13,6 +13,7 @@
 
 
 
+static TIM_HandleTypeDef *p_htim;
 static ButtonArray_t btn_arr;
 static GPIO_PinState btn_state[COUNT_BUTTON_PINS];
 static bool is_holding = false;
@@ -24,8 +25,6 @@ static uint32_t tim_channel[COUNT_BUTTON_PINS] = {
 	TIM_CHANNEL_4
 };
 
-extern TIM_HandleTypeDef htim2;
-
 
 
 static void startDetectionHold(Button_Pin btn_pin);
@@ -35,9 +34,11 @@ static void buttonRelease(Button_Pin btn_pin);
 
 
 
-void ButtonInit(ButtonArray_t *p_btn_arr) {
-	if (p_btn_arr == NULL)
+void ButtonInit(ButtonArray_t *p_btn_arr, TIM_HandleTypeDef *htim) {
+	if (p_btn_arr == NULL || htim == NULL)
 		return;
+
+	p_htim = htim;
 
 	UtilsStopInterruptsAll();
 	for (uint8_t i=0; i<COUNT_BUTTON_PINS; i++) {
@@ -99,13 +100,14 @@ void ButtonHoldTimerExpire(Button_Pin btn_pin) {
 
 
 static void startDetectionHold(Button_Pin btn_pin) {
-	uint32_t now = __HAL_TIM_GET_COUNTER(&htim2);
-	__HAL_TIM_SET_COMPARE(&htim2, tim_channel[btn_pin], now + 10);
-	HAL_TIM_OC_Start_IT(&htim2, tim_channel[btn_pin]);
+	uint32_t now = __HAL_TIM_GET_COUNTER(p_htim);
+	__HAL_TIM_SET_COMPARE(p_htim, tim_channel[btn_pin], now + 10);
+	__HAL_TIM_CLEAR_IT(p_htim, tim_channel[btn_pin]);
+	HAL_TIM_OC_Start_IT(p_htim, tim_channel[btn_pin]);
 }
 
 static void stopDetectionHold(Button_Pin btn_pin) {
-	HAL_TIM_OC_Stop_IT(&htim2, tim_channel[btn_pin]);
+	HAL_TIM_OC_Stop_IT(p_htim, tim_channel[btn_pin]);
 }
 
 static void buttonPress(Button_Pin btn_pin) {
