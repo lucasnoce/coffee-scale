@@ -22,7 +22,7 @@
 
 
 #ifdef HX711_LOOP_BACK_TEST_EN
-#define samplingDelay(x) DelayUs(10)
+#define samplingDelay(x) DelayUs(100)
 #else
 #define samplingDelay(x) DelayUs(x)
 #endif
@@ -63,8 +63,6 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim5;
 
-static void stopInterrupts(void);
-static void resumeInterrupts(void);
 static int32_t calculateMedian3(void);
 static float calculateAvrgForced(void);
 static float calculateAvrgFast(float last);
@@ -102,8 +100,6 @@ void HX711Init(GPIO_TypeDef *sck_gpio, uint16_t sck_pin, GPIO_TypeDef *dout_gpio
 		#endif
 		readSamplePoll();
 	}
-
-	while ()
 
 	reading_avrg = calculateAvrgForced();
 	reading_rate = calculateRate();
@@ -154,36 +150,6 @@ void HX711Loop(void) {
 	readSample();
 }
 
-
-static void stopInterrupts(void) {
-//	HAL_TIM_Base_Stop_IT(&htim2);
-	HAL_TIM_Base_Stop_IT(&htim4);
-
-	// stop buttons
-	EXTI->IMR &= ~(EXTI_IMR_IM3 |
-	               EXTI_IMR_IM4 |
-	               EXTI_IMR_IM5 |
-				   EXTI_IMR_IM6 |
-				   EXTI_IMR_IM11);
-}
-
-static void resumeInterrupts(void) {
-//	HAL_TIM_Base_Start_IT(&htim2);
-	HAL_TIM_Base_Start_IT(&htim4);
-
-	EXTI->PR = GPIO_PIN_3 |
-			   GPIO_PIN_4 |
-			   GPIO_PIN_5 |
-			   GPIO_PIN_6 |
-			   GPIO_PIN_11;
-
-	EXTI->IMR |= (EXTI_IMR_IM3 |
-				  EXTI_IMR_IM4 |
-				  EXTI_IMR_IM5 |
-				  EXTI_IMR_IM6 |
-				  EXTI_IMR_IM11);
-}
-
 static int32_t calculateMedian3(void) {
 	if (buf_raw[0] > buf_raw[1]) {
 		int32_t t = buf_raw[0];
@@ -208,23 +174,16 @@ static float calculateAvrgForced(void) {
 	float avrg = 0.0;
 	for (uint8_t i = 0; i < BUF_FLT_SIZE; i++)
 		avrg += buf_flt[i];
-	return (avrg / BUF_FLT_SIZE);
+	avrg /= BUF_FLT_SIZE;
+	if (avrg < 0.1 && avrg > -0.1) avrg = 0.0;
+	return avrg;
 }
 
-static float calculateAvrgFast(float last) {
-//	float avrg = 0.0;
-
-//	avrg = (reading_avrg + ((buf_flt[buf_flt_pos] - last) / BUF_FLT_SIZE));
-//	if (buf_flt_full == true) {
-//		avrg = (reading_avrg + ((buf_flt[buf_flt_pos] - last) / BUF_FLT_SIZE));
-//	}
-//	else {
-//		for(uint8_t i = 0; i <= buf_flt_pos; i++) avrg += buf_flt[i];
-//		avrg = (avrg / (buf_flt_pos + 1));
-//	}
-
-	return (reading_avrg + ((buf_flt[buf_flt_pos] - last) / BUF_FLT_SIZE));
-}
+//static float calculateAvrgFast(float last) {
+//	float avrg = (reading_avrg + ((buf_flt[buf_flt_pos] - last) / BUF_FLT_SIZE));
+//	if (avrg < 0.1 && avrg > -0.1) avrg = 0.0;
+//	return avrg;
+//}
 
 static float calculateRate(void) {
     float _lr_sum_w = (float) BUF_FLT_SIZE * reading_avrg;
@@ -241,7 +200,8 @@ static float calculateRate(void) {
 static void readSample(void) {
 	uint32_t data = 0;
 
-	stopInterrupts();
+	UtilsStopInterruptsGPIO(UTILS_GPIO_ALL_INT_PINS);
+	UtilsStopInterruptsTIM(UTILS_TIM_HX711_LB_TEST_START);
 
 	for (uint8_t i=0; i<24 ; i++) {
 		HAL_GPIO_WritePin(hx711.sck_gpio, hx711.sck_pin, GPIO_PIN_SET);
@@ -255,7 +215,8 @@ static void readSample(void) {
 		  data |= 0x01;
 	}
 
-	resumeInterrupts();
+	UtilsResumeInterruptsGPIO(UTILS_GPIO_ALL_INT_PINS);
+	UtilsResumeInterruptsTIM(UTILS_TIM_HX711_LB_TEST_START);
 
 	#ifndef HX711_LOOP_BACK_TEST_EN
 	HAL_GPIO_WritePin(hx711.sck_gpio, hx711.sck_pin, GPIO_PIN_SET);
@@ -271,10 +232,10 @@ static void readSample(void) {
 	buf_raw[buf_raw_pos] = (data ^ 0x800000);
 
 	int32_t median3 = calculateMedian3();
-	float last = buf_flt[buf_flt_pos];
+//	float last = buf_flt[buf_flt_pos];
 
 	buf_flt[buf_flt_pos] = (((float) median3) * hx711.slope) + hx711.offset;
-	reading_avrg = calculateAvrgFast(last);
+	reading_avrg = calculateAvrgForced();
 	reading_rate = calculateRate();
 }
 

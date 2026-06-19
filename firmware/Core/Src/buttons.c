@@ -40,13 +40,13 @@ void ButtonInit(ButtonArray_t *p_btn_arr, TIM_HandleTypeDef *htim) {
 
 	p_htim = htim;
 
-	UtilsStopInterruptsAll();
+	UtilsStopInterruptsGPIO(UTILS_GPIO_ALL_BTN_PINS);
 	for (uint8_t i=0; i<COUNT_BUTTON_PINS; i++) {
 		ButtonRegisterCbClick(i, p_btn_arr[i]->cb_click);
 		ButtonRegisterCbHoldStart(i, p_btn_arr[i]->cb_hold_start);
 		ButtonRegisterCbHoldStop(i, p_btn_arr[i]->cb_hold_stop);
 	}
-	UtilsResumeInterruptsAll();
+	UtilsResumeInterruptsGPIO(UTILS_GPIO_ALL_BTN_PINS);
 }
 
 void ButtonSetState(Button_Pin btn_pin, GPIO_PinState state) {

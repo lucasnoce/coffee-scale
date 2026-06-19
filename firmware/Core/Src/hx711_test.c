@@ -61,6 +61,7 @@ void HX711LoopBackTestSendData(void) {
 		return;
 	}
 
+
 	if (((dout_seq[dout_seq_pos] >> dout_seq_bit) & 0x01) == 0x01)
 		HAL_GPIO_WritePin(HX711_DOUT_LoopBack_GPIO_Port, HX711_DOUT_LoopBack_Pin, GPIO_PIN_SET);
 	else

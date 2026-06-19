@@ -55,18 +55,14 @@ void ScaleSysLoop(void){
 	EventLoop();
 }
 
-//static volatile uint32_t tim_tick = 0;
-//static volatile uint32_t tim_freq = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
-	if (htim->Instance == TIM2) {  // (T = 200ms) display refresh rate @10Hz
-//		tim_freq = (DWT->CYCCNT - tim_tick)/100;
-//		tim_tick = DWT->CYCCNT;
+	if (htim->Instance == TIM2) {  // (T = 200ms) display refresh rate @5Hz
 		TimerIncrement();
 		EventQueue(EVENT_ID_DISPLAY_UPDATE, 0);
 	}
 	else if(htim->Instance == TIM5) {  // (T = 1s) timer
 	}
-	else if(htim->Instance == TIM4) {  // (T = 1s) timer
+	else if(htim->Instance == TIM4) {  // (T = 200ms) loop back test
 	#ifdef HX711_LOOP_BACK_TEST_EN
 		EventQueue(EVENT_ID_HX711_LB_TEST_START, 0);
 	#endif

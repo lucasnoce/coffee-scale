@@ -12,6 +12,7 @@
 
 
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim5;
 
 
@@ -29,54 +30,30 @@ void DelayUs(uint32_t delay_us) {
 	while ((DWT->CYCCNT - start) < ticks);
 }
 
-
-
-#ifdef HX711_LOOP_BACK_TEST_EN
-
-static void stopInterruptsTimers(void) {
-//	EXTI->IMR &= ~EXTI_IMR_IM11;
-	HAL_TIM_Base_Stop_IT(&htim2);
-	HAL_TIM_Base_Stop_IT(&htim5);
+void UtilsStopInterruptsGPIO(uint16_t gpio_pins) {
+	EXTI->IMR &= ~gpio_pins;
 }
 
-static void resumeInterruptsTimers(void) {
-//	EXTI->PR = EXTI_PR_PR11;
-//	EXTI->IMR |= EXTI_IMR_IM11;
-	HAL_TIM_Base_Start_IT(&htim2);
-	HAL_TIM_Base_Start_IT(&htim5);
+void UtilsResumeInterruptsGPIO(uint16_t gpio_pins) {
+	EXTI->PR = gpio_pins;
+	EXTI->IMR |= gpio_pins;
 }
 
-static void stopInterruptsGPIO(void) {
-	EXTI->IMR &= ~(EXTI_IMR_IM3  |
-	               EXTI_IMR_IM4  |
-	               EXTI_IMR_IM5  |
-	               EXTI_IMR_IM6  |
-	               EXTI_IMR_IM11);
+void UtilsStopInterruptsTIM(uint8_t tim_instances) {
+	if (tim_instances & (UTILS_TIM_DISPLAY_UPDATE | UTILS_TIM_TIMER_INCREMENT | UTILS_TIM_BTN_HOLD)) {
+		HAL_TIM_Base_Stop_IT(&htim2);
+	}
+	if (tim_instances & (UTILS_TIM_HX711_LB_TEST_START)) {
+		HAL_TIM_Base_Stop_IT(&htim4);
+	}
 }
 
-static void resumeInterruptsGPIO(void) {
-	// Clear pending interrupts
-	EXTI->PR = GPIO_PIN_3 |
-	           GPIO_PIN_4 |
-	           GPIO_PIN_5 |
-	           GPIO_PIN_6 |
-	           GPIO_PIN_11;
-
-	EXTI->IMR |= (EXTI_IMR_IM3  |
-	              EXTI_IMR_IM4  |
-	              EXTI_IMR_IM5  |
-	              EXTI_IMR_IM6  |
-	              EXTI_IMR_IM11);
+void UtilsResumeInterruptsTIM(uint8_t tim_instances) {
+	if (tim_instances & (UTILS_TIM_DISPLAY_UPDATE | UTILS_TIM_TIMER_INCREMENT | UTILS_TIM_BTN_HOLD)) {
+		HAL_TIM_Base_Start_IT(&htim2);
+	}
+	if (tim_instances & (UTILS_TIM_HX711_LB_TEST_START)) {
+		HAL_TIM_Base_Start_IT(&htim4);
+	}
 }
 
-void UtilsStopInterruptsAll(void) {
-	stopInterruptsTimers();
-	stopInterruptsGPIO();
-}
-
-void UtilsResumeInterruptsAll(void) {
-	resumeInterruptsTimers();
-	resumeInterruptsGPIO();
-}
-
-#endif
